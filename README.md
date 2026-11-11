@@ -35,7 +35,7 @@ On the character sheet, inspect and dressing-room model (when available):
 | Mouse wheel up/down | Zoom in/out, clamped to 0.6–3.0× |
 | Hold right mouse + drag | Pan model left/right and up/down |
 
-The rotation direction uses **positive** `SetFacing` for a rightward drag. Pan uses `Model:SetPosition(x, y, z)` and retains the existing depth. The original model position/scale are recorded for reset, per frame.
+The rotation direction uses **positive** `SetFacing` for a rightward drag. On the target 1.12 client, horizontal movement changes the model's second position coordinate and vertical movement the third; the first (depth) is left untouched. Mouse-wheel zoom remains independent. The original model position/scale are recorded for reset, per frame.
 
 ## Commands
 
@@ -48,7 +48,7 @@ The rotation direction uses **positive** `SetFacing` for a rightward drag. Pan u
 
 ## Compatibility and verification
 
-This is an extracted **candidate**, not an in-game-tested release. It uses 1.12-style event globals (`this`, `event`, `arg1`) and avoids newer `HookScript` APIs. The model hooks chain previous scripts and check for mouse releases outside the frame. The stats pane is refreshed on equipment, aura, level and character changes. Inspect/dressing-room frames may load later, so model hooks are retried every two seconds.
+Version 0.1.1 restores the original left-button drag registration and corrects the right-button pan axes following in-game feedback. This is an extracted **candidate**, not an in-game-tested release. It uses 1.12-style event globals (`this`, `event`, `arg1`) and avoids newer `HookScript` APIs. The model hooks chain previous scripts and check for mouse releases outside the frame. The stats pane is refreshed on equipment, aura, level and character changes. Inspect/dressing-room frames may load later, so model hooks are retried every two seconds.
 
 **Manual checks to do in a real client:** character sheet open/reopen, stat group dropdowns, all five resistances with and without a resistance buff, dual wield hit/crit, dragging in both directions, right-drag pan, wheel zoom, reset, mouse release outside the model, opening Inspect/DressUp after login, and confirming the addon has no side effects when disabled.
 
