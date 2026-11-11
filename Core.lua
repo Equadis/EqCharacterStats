@@ -51,6 +51,9 @@ local DEFAULTS = {
     modelRotate = true,
     modelRotateSpeed = 0.010,
     panSensitivity = 10,
+    rarityBorders = true,
+    borderGlow = true,
+    borderGlowAlpha = 0.55,
     zoomStep = 0.15,
     zoomMin = 0.6,
     zoomMax = 3.0,
@@ -66,6 +69,10 @@ function M:Refresh()
     local doll = getglobal("PaperDollFrame")
     if doll and doll.IsShown and doll:IsShown() and self.ApplyStats then
         self:ApplyStats()
+    end
+    if doll and doll.IsShown and doll:IsShown()
+            and self.RefreshPaperdollRarity then
+        self:RefreshPaperdollRarity()
     end
     if self.InstallModelControls then self:InstallModelControls() end
 end
@@ -96,6 +103,8 @@ function M:Initialize()
             M:Refresh()
         end)
     end
+    if self.InstallRarityHooks then self:InstallRarityHooks() end
+    if self.RefreshRarity then self:RefreshRarity() end
     self:Refresh()
 end
 
@@ -103,6 +112,9 @@ local driver = CreateFrame("Frame", "EquadisCharacterDriver")
 driver:RegisterEvent("ADDON_LOADED")
 driver:RegisterEvent("PLAYER_ENTERING_WORLD")
 driver:RegisterEvent("UNIT_INVENTORY_CHANGED")
+driver:RegisterEvent("BAG_UPDATE")
+driver:RegisterEvent("PLAYERBANKSLOTS_CHANGED")
+driver:RegisterEvent("BANKFRAME_OPENED")
 driver:RegisterEvent("PLAYER_AURAS_CHANGED")
 driver:RegisterEvent("UNIT_AURA")
 driver:RegisterEvent("PLAYER_LEVEL_UP")
@@ -114,11 +126,23 @@ driver:SetScript("OnEvent", function()
     if event == "ADDON_LOADED" then
         if arg1 == "EqCharacterStats" then M:Initialize() end
         if M.initialized and M.InstallModelControls then M:InstallModelControls() end
+        if M.initialized and M.InstallRarityHooks then M:InstallRarityHooks() end
         return
     end
     if not M.initialized then M:Initialize() end
     if (event == "UNIT_INVENTORY_CHANGED" or event == "UNIT_AURA")
             and arg1 and arg1 ~= "player" then return end
+    if event == "BAG_UPDATE" then
+        if M.RefreshBagRarity then M:RefreshBagRarity() end
+        return
+    end
+    if event == "PLAYERBANKSLOTS_CHANGED" or event == "BANKFRAME_OPENED" then
+        if M.RefreshBankRarity then M:RefreshBankRarity() end
+        return
+    end
+    if event == "PLAYER_ENTERING_WORLD" and M.RefreshRarity then
+        M:RefreshRarity()
+    end
     if M.initialized then
         M.gearAt, M.talentsAt, M.aurasAt = nil, nil, nil
         M:Refresh()
@@ -133,6 +157,7 @@ driver:SetScript("OnUpdate", function()
     if M.installElapsed >= 2 then
         M.installElapsed = 0
         if M.InstallModelControls then M:InstallModelControls() end
+        if M.InstallRarityHooks then M:InstallRarityHooks() end
     end
 end)
 
@@ -153,6 +178,23 @@ SlashCmdList["EQUADISCHARACTER"] = function(msg)
         db.modelRotate = (value == "on")
         if M.UpdateModelArrows then M:UpdateModelArrows() end
         M:Print("Model controls " .. value)
+    elseif command == "rarity" and (value == "on" or value == "off") then
+        db.rarityBorders = (value == "on")
+        if M.RefreshRarity then M:RefreshRarity() end
+        M:Print("Rarity borders " .. value)
+    elseif command == "glow" and (value == "on" or value == "off") then
+        db.borderGlow = (value == "on")
+        if M.RefreshRarity then M:RefreshRarity() end
+        M:Print("Rarity glow " .. value)
+    elseif command == "glowalpha" and tonumber(value) then
+        local n = tonumber(value)
+        if n >= 0 and n <= 1 then
+            db.borderGlowAlpha = n
+            if M.RefreshRarity then M:RefreshRarity() end
+            M:Print("Glow opacity: " .. tostring(n))
+        else
+            M:Print("Glow opacity must be 0-1.")
+        end
     elseif command == "font" and tonumber(value) then
         local n = tonumber(value)
         if n >= 6 and n <= 14 then
@@ -185,6 +227,6 @@ SlashCmdList["EQUADISCHARACTER"] = function(msg)
         if M.ResetModels then M:ResetModels() end
         M:Print("Model zoom and position reset.")
     else
-        M:Print("/ecs stats on|off; model on|off; left|right <group>; font 6-14; pan 1-30; reset")
+        M:Print("/ecs stats on|off; model on|off; rarity on|off; glow on|off; glowalpha 0-1; left|right <group>; font 6-14; pan 1-30; reset")
     end
 end
