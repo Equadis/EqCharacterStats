@@ -44,6 +44,16 @@ Default settings are borders **on**, glow **on**, glow opacity **0.55**.
 Commands: `/ecs rarity on|off`, `/ecs glow on|off`, and
 `/ecs glowalpha 0.55` (opacity between 0 and 1).
 
+## Character model clipping
+
+Version 0.1.4 clips the stock paper-doll model viewport at the upper edge of
+the custom stat dropdowns. Blizzard's original 1.12 model frame is tall enough
+to overlap the top of the stat panes; zooming makes its rendered model visible
+through partially transparent panel art. The clip uses the live dropdown
+position (with a stock 1.12 fallback), does not touch the model's rotation,
+zoom or pan, and restores the original viewport height when custom stats are
+disabled with `/ecs stats off`.
+
 ## Model controls
 
 On the character sheet, inspect and dressing-room model (when available):
