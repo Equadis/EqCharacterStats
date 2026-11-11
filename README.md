@@ -24,6 +24,26 @@ The paper doll gets two compact panes, each with a dropdown. Groups:
 
 Resistance rows use the **total** returned by `UnitResistance("player", schoolIndex)` after buffs/gear and not a manually summed approximation. Hit/crit extraction retains the original tooltips/gear/talents/aura logic and source explanations. When the client cannot provide a number, it is not silently fabricated.
 
+
+## Item rarity borders
+
+The original ECO item-quality border system is included in v0.1.3 (from
+`ClassicOverhaul/modules/qol.lua`). It tints the **existing Blizzard item-slot
+normal texture** rather than drawing a replacement ring, with an optional
+`UI-ActionButton-Border` additive glow.
+
+- **Green / uncommon** and higher rarities get their standard WoW quality colours.
+- **Common and poor** items retain their normal borders.
+- Works on the character paper doll and Inspect; also applies to normal bags
+  and bank slots, as in the original ECO implementation.
+- Updates when equipped items or bags change, when bags/bank open, and when
+  Inspect's item slots finish loading.
+
+Default settings are borders **on**, glow **on**, glow opacity **0.55**.
+
+Commands: `/ecs rarity on|off`, `/ecs glow on|off`, and
+`/ecs glowalpha 0.55` (opacity between 0 and 1).
+
 ## Model controls
 
 On the character sheet, inspect and dressing-room model (when available):
@@ -49,9 +69,9 @@ The stock 1.12 paper doll uses `PlayerModel:SetRotation()` and a `model.rotation
 
 ## Compatibility and verification
 
-Version 0.1.2 uses the stock 1.12 `SetRotation` codepath and explicit drag start/stop callbacks; changes zoom to camera depth, increases right-drag pan sensitivity to 10, and increases stat fonts by 2 pt. These changes still require a real 1.12 in-game retest. It uses 1.12-style event globals (`this`, `event`, `arg1`) and avoids newer `HookScript` APIs. The model hooks chain previous scripts and check for mouse releases outside the frame. The stats pane is refreshed on equipment, aura, level and character changes. Inspect/dressing-room frames may load later, so model hooks are retried every two seconds.
+Version 0.1.3 adds ECO rarity-coloured item slot borders and glow. Version 0.1.2 uses the stock 1.12 `SetRotation` codepath and explicit drag start/stop callbacks; changes zoom to camera depth, increases right-drag pan sensitivity to 10, and increases stat fonts by 2 pt. These changes still require a real 1.12 in-game retest. It uses 1.12-style event globals (`this`, `event`, `arg1`) and avoids newer `HookScript` APIs. The model hooks chain previous scripts and check for mouse releases outside the frame. The stats pane is refreshed on equipment, aura, level and character changes. Inspect/dressing-room frames may load later, so model hooks are retried every two seconds.
 
-**Manual checks to do in a real client:** character sheet open/reopen, stat group dropdowns, all five resistances with and without a resistance buff, dual wield hit/crit, dragging in both directions, right-drag pan, wheel zoom, reset, mouse release outside the model, opening Inspect/DressUp after login, and confirming the addon has no side effects when disabled.
+**Manual checks to do in a real client:** character sheet open/reopen, rarity borders on equipped green/blue/epic items, common/poor border reset, inspecting another player, bag/bank open and item move, toggling glow/borders, stat group dropdowns, all five resistances with and without a resistance buff, dual wield hit/crit, dragging in both directions, right-drag pan, wheel zoom, reset, mouse release outside the model, opening Inspect/DressUp after login, and confirming the addon has no side effects when disabled.
 
 ## Source and licence
 
