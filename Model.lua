@@ -61,8 +61,11 @@ function M:MoveModel(frame, dx, dy)
     rememberBase(frame)
     local p = frame.ecsPosition
     local factor = modelCoordsPerPixel()
-    p[1] = p[1] + dx * factor
-    p[2] = p[2] + dy * factor
+    -- On this 1.12 client the model camera looks along the X axis:
+    -- X controls depth, Y controls on-screen horizontal, Z vertical.
+    -- Keep X unchanged so right-drag cannot zoom the model.
+    p[2] = p[2] + dx * factor
+    p[3] = p[3] + dy * factor
     frame:SetPosition(p[1], p[2], p[3])
     return true
 end
@@ -131,6 +134,9 @@ function M:InstallModelControls()
         if frame and frame.GetFacing and frame.SetFacing and not frame.ecsModelHooked then
             frame.ecsModelHooked = true
             frame:EnableMouse(true)
+            -- The original ClassicOverhaul rotation registered left drag.
+            -- Restore this for the stock 1.12 model's mouse handling.
+            if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
             if frame.EnableMouseWheel then frame:EnableMouseWheel(true) end
 
             local oldDown = frame:GetScript("OnMouseDown")
@@ -140,13 +146,16 @@ function M:InstallModelControls()
             local oldHide = frame:GetScript("OnHide")
 
             frame:SetScript("OnMouseDown", function()
+                -- Older 1.12 handlers can omit arg1 for the primary button.
+                -- Preserve the button before calling any inherited handler.
+                local model, button = this, arg1 or "LeftButton"
                 if oldDown then oldDown() end
                 if not M:Config().modelRotate then return end
-                if arg1 ~= "LeftButton" and arg1 ~= "RightButton" then return end
+                if button ~= "LeftButton" and button ~= "RightButton" then return end
                 local x, y = cursor()
                 if not x then return end
-                rememberBase(this)
-                this.ecsDrag = { button = arg1, x = x, y = y }
+                rememberBase(model)
+                model.ecsDrag = { button = button, x = x, y = y }
             end)
 
             frame:SetScript("OnMouseUp", function()
