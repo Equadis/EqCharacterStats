@@ -16,15 +16,16 @@ local PAPERDOLL_SLOTS = {
 local function qualityFromLink(link)
     if not link or type(GetItemInfo) ~= "function" then return nil end
 
-    -- Use the full item hyperlink first; some 1.12 variants prefer an item ID.
-    local _, _, quality = GetItemInfo(link)
-    if type(quality) == "number" then return quality end
-
+    -- ECO's ItemQuery strips the numeric item ID before asking GetItemInfo;
+    -- this matters for older 1.12 clients that do not accept full hyperlinks.
     local _, _, itemID = string.find(link, "item:(%d+)")
     if itemID then
-        local _, _, alternative = GetItemInfo(tonumber(itemID))
-        if type(alternative) == "number" then return alternative end
+        local _, _, quality = GetItemInfo(tonumber(itemID))
+        if type(quality) == "number" then return quality end
     end
+
+    local _, _, fallback = GetItemInfo(link)
+    if type(fallback) == "number" then return fallback end
     return nil
 end
 
