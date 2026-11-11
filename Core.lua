@@ -81,7 +81,7 @@ function M:Initialize()
     if self.initialized then return end
     if type(EquadisCharacterDB) ~= "table" then EquadisCharacterDB = {} end
     -- One-time +2pt migration for users who already had an 8pt (or custom)
-    -- font setting. New installs get the 10pt default without doubling it.
+    -- font setting. The v1.0 migration below then adjusts existing sizes by -1pt.
     if not EquadisCharacterDB.fontSizeRaised012 then
         if type(EquadisCharacterDB.statFontSize) == "number" then
             EquadisCharacterDB.statFontSize =
