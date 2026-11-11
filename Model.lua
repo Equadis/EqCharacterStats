@@ -64,14 +64,15 @@ function M:MoveModel(frame, dx, dy)
     -- On this 1.12 client the model camera looks along the X axis:
     -- X controls depth, Y controls on-screen horizontal, Z vertical.
     -- Keep X unchanged so right-drag cannot zoom the model.
-    p[2] = p[2] + dx * factor
-    p[3] = p[3] + dy * factor
+    local sensitivity = tonumber(M:Config().panSensitivity) or 10
+    p[2] = p[2] + dx * factor * sensitivity
+    p[3] = p[3] + dy * factor * sensitivity
     frame:SetPosition(p[1], p[2], p[3])
     return true
 end
 
 function M:ZoomModel(frame, delta)
-    if not frame or not frame.SetModelScale or not delta or delta == 0 then
+    if not frame or not frame.SetPosition or not delta or delta == 0 then
         return false
     end
     rememberBase(frame)
@@ -79,18 +80,38 @@ function M:ZoomModel(frame, delta)
     local step = tonumber(cfg.zoomStep) or 0.15
     local nextZoom = clamp((frame.ecsZoom or 1) * (1 + step * delta),
         tonumber(cfg.zoomMin) or 0.6, tonumber(cfg.zoomMax) or 3.0)
+
+    -- WoW 1.12 scales Model:SetModelScale around the character's feet, so the
+    -- character appears to grow upward rather than expand about the view centre.
+    -- On these PlayerModel previews position X is camera depth (the original
+    -- right-drag X also zoomed). Moving towards the camera produces the expected
+    -- centre-origin perspective zoom while retaining the existing X/Y pan.
     frame.ecsZoom = nextZoom
-    frame:SetModelScale(frame.ecsBaseScale * nextZoom)
+    local p = frame.ecsPosition
+    p[1] = frame.ecsBasePosition[1] + (nextZoom - 1) * 1.5
+    frame:SetPosition(p[1], p[2], p[3])
     return true
 end
 
 function M:RotateModel(frame, dx)
-    if not frame or not frame.GetFacing or not frame.SetFacing then
+    if not frame or (not frame.SetRotation and not frame.SetFacing) then
         return false
     end
     local speed = tonumber(self:Config().modelRotateSpeed) or 0.010
-    -- Positive facing is counterclockwise. Dragging right must increase it.
-    frame:SetFacing((frame:GetFacing() or 0) + dx * speed)
+    -- Stock 1.12 Model_OnLoad and Model_OnUpdate use model.rotation and
+    -- PlayerModel:SetRotation, not Model:SetFacing. Keep their shared state
+    -- updated or the client's own model handler can overwrite our rotation.
+    local old = frame.rotation
+    if type(old) ~= "number" then
+        old = (frame.GetFacing and frame:GetFacing()) or 0
+    end
+    local angle = old + dx * speed  -- rightward drag = counterclockwise
+    frame.rotation = angle
+    if frame.SetRotation then
+        frame:SetRotation(angle)
+    else
+        frame:SetFacing(angle)
+    end
     return true
 end
 
@@ -131,12 +152,14 @@ end
 function M:InstallModelControls()
     for i = 1, table.getn(MODEL_FRAMES) do
         local frame = getglobal(MODEL_FRAMES[i])
-        if frame and frame.GetFacing and frame.SetFacing and not frame.ecsModelHooked then
+        if frame and (frame.SetRotation or frame.SetFacing) and not frame.ecsModelHooked then
             frame.ecsModelHooked = true
             frame:EnableMouse(true)
             -- The original ClassicOverhaul rotation registered left drag.
             -- Restore this for the stock 1.12 model's mouse handling.
-            if frame.RegisterForDrag then frame:RegisterForDrag("LeftButton") end
+            if frame.RegisterForDrag then
+                frame:RegisterForDrag("LeftButton", "RightButton")
+            end
             if frame.EnableMouseWheel then frame:EnableMouseWheel(true) end
 
             local oldDown = frame:GetScript("OnMouseDown")
@@ -144,18 +167,41 @@ function M:InstallModelControls()
             local oldUpdate = frame:GetScript("OnUpdate")
             local oldWheel = frame:GetScript("OnMouseWheel")
             local oldHide = frame:GetScript("OnHide")
+            local oldDragStart = frame:GetScript("OnDragStart")
+            local oldDragStop = frame:GetScript("OnDragStop")
 
-            frame:SetScript("OnMouseDown", function()
-                -- Older 1.12 handlers can omit arg1 for the primary button.
-                -- Preserve the button before calling any inherited handler.
-                local model, button = this, arg1 or "LeftButton"
-                if oldDown then oldDown() end
+            local function beginDrag(model, button)
                 if not M:Config().modelRotate then return end
                 if button ~= "LeftButton" and button ~= "RightButton" then return end
+                if model.ecsDrag and model.ecsDrag.button == button then return end
                 local x, y = cursor()
                 if not x then return end
                 rememberBase(model)
                 model.ecsDrag = { button = button, x = x, y = y }
+            end
+
+            frame:SetScript("OnMouseDown", function()
+                -- Start immediately; 1.12 also fires OnDragStart after movement.
+                local model, button = this, arg1 or "LeftButton"
+                if oldDown then oldDown() end
+                beginDrag(model, button)
+            end)
+
+            -- The 1.12 client routes a registered left-button drag through
+            -- OnDragStart, which previously had no handler in this addon.
+            -- OnDragStop also handles releasing the mouse outside the frame.
+            frame:SetScript("OnDragStart", function()
+                local button = arg1
+                if not button and type(IsMouseButtonDown) == "function"
+                        and IsMouseButtonDown("RightButton") then
+                    button = "RightButton"
+                end
+                beginDrag(this, button or "LeftButton")
+                if oldDragStart and not M:Config().modelRotate then oldDragStart() end
+            end)
+            frame:SetScript("OnDragStop", function()
+                this.ecsDrag = nil
+                if oldDragStop and not M:Config().modelRotate then oldDragStop() end
             end)
 
             frame:SetScript("OnMouseUp", function()
@@ -170,7 +216,11 @@ function M:InstallModelControls()
                 local drag = this.ecsDrag
                 if not drag then return end
                 if not M:Config().modelRotate then this.ecsDrag = nil; return end
-                if type(IsMouseButtonDown) == "function"
+                -- For registered left-button drags, OnDragStop is authoritative.
+                -- Polling IsMouseButtonDown on some 1.12 forks incorrectly reports
+                -- false during drag and cancelled rotation on every frame.
+                if drag.button == "RightButton"
+                        and type(IsMouseButtonDown) == "function"
                         and not IsMouseButtonDown(drag.button) then
                     this.ecsDrag = nil
                     return
