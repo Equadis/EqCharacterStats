@@ -45,7 +45,7 @@ end
 
 local DEFAULTS = {
     statPanes = true,
-    statFontSize = 10,
+    statFontSize = 9,
     leftGroup = "base",
     rightGroup = "melee",
     modelRotate = true,
@@ -88,6 +88,16 @@ function M:Initialize()
                 math.min(14, EquadisCharacterDB.statFontSize + 2)
         end
         EquadisCharacterDB.fontSizeRaised012 = true
+    end
+    -- v1.0 lowers every existing character-sheet font setting by one point,
+    -- exactly once. A new installation has no saved font value and will
+    -- receive the 9pt default below.
+    if not EquadisCharacterDB.fontSizeLowered100 then
+        if type(EquadisCharacterDB.statFontSize) == "number" then
+            EquadisCharacterDB.statFontSize =
+                math.max(6, EquadisCharacterDB.statFontSize - 1)
+        end
+        EquadisCharacterDB.fontSizeLowered100 = true
     end
     for key, value in pairs(DEFAULTS) do
         if EquadisCharacterDB[key] == nil then EquadisCharacterDB[key] = value end
