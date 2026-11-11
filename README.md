@@ -32,10 +32,10 @@ On the character sheet, inspect and dressing-room model (when available):
 | --- | --- |
 | Hold left mouse + drag right | Rotate character counterclockwise |
 | Hold left mouse + drag left | Rotate character clockwise |
-| Mouse wheel up/down | Zoom in/out, clamped to 0.6–3.0× |
+| Mouse wheel up/down | Centre-origin zoom in/out (camera-depth movement, clamped to the existing wheel range) |
 | Hold right mouse + drag | Pan model left/right and up/down |
 
-The rotation direction uses **positive** `SetFacing` for a rightward drag. On the target 1.12 client, horizontal movement changes the model's second position coordinate and vertical movement the third; the first (depth) is left untouched. Mouse-wheel zoom remains independent. The original model position/scale are recorded for reset, per frame.
+The stock 1.12 paper doll uses `PlayerModel:SetRotation()` and a `model.rotation` field, which are now used for left-drag (rightward movement increases the angle). Right-drag changes the model's second and third position coordinates (horizontal and vertical) at 10× the previous sensitivity. Mouse-wheel zoom changes the first coordinate (camera depth), leaving model scale intact so the character expands about the view centre instead of growing upward from its feet. The same zoom bounds and wheel step are retained. The original model position/scale are recorded for reset, per frame.
 
 ## Commands
 
@@ -43,12 +43,13 @@ The rotation direction uses **positive** `SetFacing` for a rightward drag. On th
 - `/ecs stats on` or `/ecs stats off`
 - `/ecs model on` or `/ecs model off` — restores the default turn buttons when disabled
 - `/ecs left resist` (or `right resist`) — choose any group for either pane
-- `/ecs font 8` — 6–12
+- `/ecs font 10` — 6–14 (default 10; existing settings increase by 2 pt once)
+- `/ecs pan 10` — pan sensitivity from 1–30 (default 10; previously effectively 1)
 - `/ecs reset` — restore each model's original zoom and position
 
 ## Compatibility and verification
 
-Version 0.1.1 restores the original left-button drag registration and corrects the right-button pan axes following in-game feedback. This is an extracted **candidate**, not an in-game-tested release. It uses 1.12-style event globals (`this`, `event`, `arg1`) and avoids newer `HookScript` APIs. The model hooks chain previous scripts and check for mouse releases outside the frame. The stats pane is refreshed on equipment, aura, level and character changes. Inspect/dressing-room frames may load later, so model hooks are retried every two seconds.
+Version 0.1.2 uses the stock 1.12 `SetRotation` codepath and explicit drag start/stop callbacks; changes zoom to camera depth, increases right-drag pan sensitivity to 10, and increases stat fonts by 2 pt. These changes still require a real 1.12 in-game retest. It uses 1.12-style event globals (`this`, `event`, `arg1`) and avoids newer `HookScript` APIs. The model hooks chain previous scripts and check for mouse releases outside the frame. The stats pane is refreshed on equipment, aura, level and character changes. Inspect/dressing-room frames may load later, so model hooks are retried every two seconds.
 
 **Manual checks to do in a real client:** character sheet open/reopen, stat group dropdowns, all five resistances with and without a resistance buff, dual wield hit/crit, dragging in both directions, right-drag pan, wheel zoom, reset, mouse release outside the model, opening Inspect/DressUp after login, and confirming the addon has no side effects when disabled.
 
