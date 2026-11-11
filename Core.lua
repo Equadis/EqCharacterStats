@@ -45,11 +45,12 @@ end
 
 local DEFAULTS = {
     statPanes = true,
-    statFontSize = 8,
+    statFontSize = 10,
     leftGroup = "base",
     rightGroup = "melee",
     modelRotate = true,
     modelRotateSpeed = 0.010,
+    panSensitivity = 10,
     zoomStep = 0.15,
     zoomMin = 0.6,
     zoomMax = 3.0,
@@ -72,6 +73,15 @@ end
 function M:Initialize()
     if self.initialized then return end
     if type(EquadisCharacterDB) ~= "table" then EquadisCharacterDB = {} end
+    -- One-time +2pt migration for users who already had an 8pt (or custom)
+    -- font setting. New installs get the 10pt default without doubling it.
+    if not EquadisCharacterDB.fontSizeRaised012 then
+        if type(EquadisCharacterDB.statFontSize) == "number" then
+            EquadisCharacterDB.statFontSize =
+                math.min(14, EquadisCharacterDB.statFontSize + 2)
+        end
+        EquadisCharacterDB.fontSizeRaised012 = true
+    end
     for key, value in pairs(DEFAULTS) do
         if EquadisCharacterDB[key] == nil then EquadisCharacterDB[key] = value end
     end
@@ -145,11 +155,19 @@ SlashCmdList["EQUADISCHARACTER"] = function(msg)
         M:Print("Model controls " .. value)
     elseif command == "font" and tonumber(value) then
         local n = tonumber(value)
-        if n >= 6 and n <= 12 then
+        if n >= 6 and n <= 14 then
             db.statFontSize = n
             M:Refresh()
         else
-            M:Print("Font size must be 6–12.")
+            M:Print("Font size must be 6-14.")
+        end
+    elseif command == "pan" and tonumber(value) then
+        local n = tonumber(value)
+        if n >= 1 and n <= 30 then
+            db.panSensitivity = n
+            M:Print("Pan sensitivity: " .. tostring(n))
+        else
+            M:Print("Pan sensitivity must be 1-30.")
         end
     elseif command == "left" or command == "right" then
         local selected
@@ -167,6 +185,6 @@ SlashCmdList["EQUADISCHARACTER"] = function(msg)
         if M.ResetModels then M:ResetModels() end
         M:Print("Model zoom and position reset.")
     else
-        M:Print("/ecs stats on|off; model on|off; left|right <group>; font 6–12; reset")
+        M:Print("/ecs stats on|off; model on|off; left|right <group>; font 6-14; pan 1-30; reset")
     end
 end
