@@ -1570,6 +1570,54 @@ end
      Switching the module off has to leave the client's own sheet exactly as it
      was, so this shows Blizzard's stat blocks again rather than leaving two
      empty holes where they used to be. ]==]
+-- The stock 1.12 CharacterModelFrame starts 78px below PaperDollFrame's top
+-- and is 224px high, ending at -302. Our stat panes start at -291 and their
+-- dropdowns reach higher still. The model therefore renders underneath the
+-- translucent stat header, which becomes obvious when the model is zoomed.
+--
+-- Fix the actual overlap by shortening the *viewport*, anchored at its existing
+-- top. Do not change SetModelScale, SetPosition, or model facing: zoom/pan/turn
+-- are independent and already working. Restore Blizzard's height when the
+-- custom stat panes are disabled.
+function M:ClipCharacterModelForStats(enabled, pane)
+    local model = getglobal("CharacterModelFrame")
+    if not model or not model.GetHeight or not model.SetHeight then return false end
+
+    if not enabled then
+        if model.ecsStatOriginalHeight then
+            model:SetHeight(model.ecsStatOriginalHeight)
+            model.ecsStatOriginalHeight = nil
+        end
+        return true
+    end
+
+    if not model.ecsStatOriginalHeight then
+        model.ecsStatOriginalHeight = model:GetHeight()
+    end
+    local originalHeight = model.ecsStatOriginalHeight
+
+    -- Prefer the dropdown's measured upper edge: unlike a fixed 36px inset,
+    -- it also respects UI scale and alternate dropdown dimensions.
+    local modelTop = model.GetTop and model:GetTop()
+    local dropdownTop = pane and pane.drop and pane.drop.GetTop
+            and pane.drop:GetTop()
+    local desiredHeight
+
+    if type(modelTop) == "number" and type(dropdownTop) == "number" then
+        desiredHeight = modelTop - dropdownTop - 2
+    else
+        -- Default 1.12 paper doll: model bottom overlaps the header by ~36px.
+        desiredHeight = originalHeight - 36
+    end
+
+    -- Never extend the model into the stat controls or collapse the viewport.
+    desiredHeight = math.max(1, math.min(originalHeight, desiredHeight))
+    if math.abs(model:GetHeight() - desiredHeight) > 0.5 then
+        model:SetHeight(desiredHeight)
+    end
+    return true
+end
+
 function M:ApplyStats()
     local wanted = OB.ModuleEnabled("characterpanel")
             and self:Config().statPanes
@@ -1588,6 +1636,7 @@ function M:ApplyStats()
     if not wanted then
         left:Hide()
         right:Hide()
+        self:ClipCharacterModelForStats(false)
         return false
     end
 
@@ -1611,6 +1660,7 @@ function M:ApplyStats()
 
     left:Show()
     right:Show()
+    self:ClipCharacterModelForStats(true, left)
 
     return true
 end
