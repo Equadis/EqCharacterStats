@@ -1685,7 +1685,7 @@ function M:DrawPane(pane, groupId)
     --[[ The client's own face at the configured size: the path is read back
          off the string so the face never changes, only the height. Set only
          when it differs, because SetFont re-measures the string. ]]--
-    local size = tonumber(self:Config().statFontSize) or 8
+    local size = tonumber(self:Config().statFontSize) or 9
 
     local function sized(text)
         if text and text.eqEcoStatSize ~= size and text.GetFont and text.SetFont then
