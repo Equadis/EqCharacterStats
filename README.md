@@ -10,6 +10,9 @@ Do not enable this addon alongside ClassicOverhaul's character-stats and model-d
 
 ## Stats
 
+**v1.0:** The default stat font is 9 pt (down from 10 pt). Existing users' saved font sizes are reduced by 1 pt once when they update.
+
+
 The paper doll gets two compact panes, each with a dropdown. Groups:
 
 - `base` — primary attributes, armour
@@ -73,7 +76,7 @@ The stock 1.12 paper doll uses `PlayerModel:SetRotation()` and a `model.rotation
 - `/ecs stats on` or `/ecs stats off`
 - `/ecs model on` or `/ecs model off` — restores the default turn buttons when disabled
 - `/ecs left resist` (or `right resist`) — choose any group for either pane
-- `/ecs font 10` — 6–14 (default 10; existing settings increase by 2 pt once)
+- `/ecs font 9` — 6–14 (default 9 pt; existing saved font settings automatically decrease by 1 pt once)
 - `/ecs pan 10` — pan sensitivity from 1–30 (default 10; previously effectively 1)
 - `/ecs reset` — restore each model's original zoom and position
 
