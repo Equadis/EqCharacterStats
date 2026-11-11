@@ -2,7 +2,7 @@
 ## Title: EqCharacterStats
 ## Notes: Better character statistics and mouse-driven character model controls, extracted from ClassicOverhaul
 ## Author: Equadis
-## Version: 0.1.0
+## Version: 0.1.1
 ## X-License: GPL-3.0-or-later
 ## X-Website: https://github.com/Equadis/EqCharacterStats
 ## SavedVariables: EquadisCharacterDB
