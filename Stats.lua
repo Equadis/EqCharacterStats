@@ -180,13 +180,15 @@ local function readGearLine(line, out, setName, trace)
         end
     end
 
-    --[[ School power is one sentence with the school's name in the middle of
-         it, so it is asked six times rather than pattern-matched loosely: a
-         greedy match here would read "Fire" out of "Fireguard". ]]--
+    -- School damage can use a long equip effect or a short stat line such as
+    -- "+27 Shadow Spell Damage" on items of Shadow Wrath.
     for i = 1, table.getn(SCHOOLS) do
         local school = SCHOOLS[i]
         local _, _, found = string.find(line,
                 "damage done by " .. school .. " spells and effects by up to (%d+)")
+        if not found then
+            _, _, found = string.find(line, "^%+(%d+) " .. school .. " Spell Damage%s*$")
+        end
 
         if found then
             out.schools[school] = (out.schools[school] or 0) + (tonumber(found) or 0)
